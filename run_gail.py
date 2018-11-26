@@ -3,6 +3,7 @@ import argparse
 import gym
 import numpy as np
 import tensorflow as tf
+import gym_fetch_base_motions
 from network_models.policy_net import Policy_net
 from network_models.discriminator import Discriminator
 from algo.ppo import PPOTrain
@@ -14,20 +15,28 @@ def argparser():
     parser.add_argument('--savedir', help='save directory', default='trained_models/gail')
     parser.add_argument('--gamma', default=0.95)
     parser.add_argument('--iteration', default=int(1e4))
+    parser.add_argument('--env', default='FetchBase-v0')
+    parser.add_argument('--obs', default='observations.csv')
+    parser.add_argument('--acs', default='actions.csv')
+    parser.add_argument('--max_reward', default=32, type=int)
     return parser.parse_args()
 
 
 def main(args):
-    env = gym.make('CartPole-v0')
+    env = gym.make(args.env)
     env.seed(0)
     ob_space = env.observation_space
+    ac_space = env.action_space
+    
     Policy = Policy_net('policy', env)
     Old_Policy = Policy_net('old_policy', env)
     PPO = PPOTrain(Policy, Old_Policy, gamma=args.gamma)
     D = Discriminator(env)
 
-    expert_observations = np.genfromtxt('trajectory/observations.csv')
-    expert_actions = np.genfromtxt('trajectory/actions.csv', dtype=np.int32)
+    print('observations=', args.obs)
+    print('actions=', args.acs)
+    expert_observations = np.genfromtxt('trajectory/'+ args.obs)
+    expert_actions = np.genfromtxt('trajectory/'+ args.acs, dtype=np.int32)
 
     saver = tf.train.Saver()
 
@@ -39,6 +48,7 @@ def main(args):
         success_num = 0
 
         for iteration in range(args.iteration):
+            print('current iteration=', iteration)
             observations = []
             actions = []
             # do NOT use rewards to update policy
@@ -46,6 +56,8 @@ def main(args):
             v_preds = []
             run_policy_steps = 0
             while True:
+                if run_policy_steps % 10000 == 0:
+                    print('current policy step=', run_policy_steps)
                 run_policy_steps += 1
                 obs = np.stack([obs]).astype(dtype=np.float32)  # prepare to feed placeholder Policy.obs
                 act, v_pred = Policy.act(obs=obs, stochastic=True)
@@ -53,6 +65,13 @@ def main(args):
                 act = np.asscalar(act)
                 v_pred = np.asscalar(v_pred)
                 next_obs, reward, done, info = env.step(act)
+
+                if run_policy_steps % 10000 == 0:
+                    print('current reward = ', reward)
+                
+                if done:
+                    print('Got enough reward. done! party times :D')
+            
 
                 observations.append(obs)
                 actions.append(act)
@@ -73,11 +92,11 @@ def main(args):
             writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='episode_reward', simple_value=sum(rewards))])
                                , iteration)
 
-            if sum(rewards) >= 195:
+            if sum(rewards) >= args.max_reward:
                 success_num += 1
                 if success_num >= 100:
                     saver.save(sess, args.savedir + '/model.ckpt')
-                    print('Clear!! Model saved.')
+                    print('**************** Clear!! Model saved.*********************')
                     break
             else:
                 success_num = 0

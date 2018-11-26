@@ -13,6 +13,7 @@ def argparser():
     parser.add_argument('--savedir', help='save directory', default='trained_models/ppo')
     parser.add_argument('--gamma', default=0.95, type=float)
     parser.add_argument('--iteration', default=int(1e4), type=int)
+    parser.add_argument('--max_reward', default=35, type=int)
     return parser.parse_args()
 
 
@@ -66,11 +67,11 @@ def main(args):
             writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='episode_reward', simple_value=sum(rewards))])
                                , iteration)
 
-            if sum(rewards) >= 195:
+            if sum(rewards) >= args.max_reward:
                 success_num += 1
                 if success_num >= 100:
                     saver.save(sess, args.savedir+'/model.ckpt')
-                    print('Clear!! Model saved.')
+                    print('----------- ------- ------- ------------------------ ----------------------- Clear!!! Model saved.')
                     break
             else:
                 success_num = 0

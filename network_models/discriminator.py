@@ -1,4 +1,5 @@
 import tensorflow as tf
+import gym
 
 
 class Discriminator:
@@ -18,7 +19,7 @@ class Discriminator:
                 _depth = env.action_space.shape[0]
             elif isinstance(env.action_space, gym.spaces.Discrete):
                 _depth = env.action_space.n
-            print('Depth=', _depth)
+
             expert_a_one_hot = tf.one_hot(self.expert_a, depth=_depth)
             # add noise for stabilise training
             expert_a_one_hot += tf.random_normal(tf.shape(expert_a_one_hot), mean=0.2, stddev=0.1, dtype=tf.float32)/1.2

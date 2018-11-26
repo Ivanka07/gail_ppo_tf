@@ -65,9 +65,9 @@ def main(args):
 
             observations = np.reshape(observations, newshape=[-1] + list(ob_space.shape))
             actions = np.array(actions).astype(dtype=np.int32)
-
-            open_file_and_save('trajectory/observations.csv', observations)
-            open_file_and_save('trajectory/actions.csv', actions)
+            print('Episode =', iteration, ' length of data= ', observations.shape)
+            open_file_and_save('trajectory/observations_1.csv', observations)
+            open_file_and_save('trajectory/actions_1.csv', actions)
 
 
 if __name__ == '__main__':
