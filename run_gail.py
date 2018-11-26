@@ -18,8 +18,14 @@ def argparser():
     parser.add_argument('--env', default='FetchBase-v0')
     parser.add_argument('--obs', default='observations.csv')
     parser.add_argument('--acs', default='actions.csv')
-    parser.add_argument('--max_reward', default=32, type=int)
+    parser.add_argument('--log_actions',, default='log_actions')
+    parser.add_argument('--max_reward', default=30, type=int)
     return parser.parse_args()
+
+
+def store_actions(iteration, actions, dir='log_actions'):
+    filename = dir + '/' + '_iteration'
+    np.savez(store_file, acs=actions)
 
 
 def main(args):
@@ -46,6 +52,7 @@ def main(args):
 
         obs = env.reset()
         success_num = 0
+        actions_to_log = []
 
         for iteration in range(args.iteration):
             print('current iteration=', iteration)
@@ -61,22 +68,29 @@ def main(args):
                 run_policy_steps += 1
                 obs = np.stack([obs]).astype(dtype=np.float32)  # prepare to feed placeholder Policy.obs
                 act, v_pred = Policy.act(obs=obs, stochastic=True)
-
+                print('Action = ', act, 'State Value', v_pred)
                 act = np.asscalar(act)
                 v_pred = np.asscalar(v_pred)
                 next_obs, reward, done, info = env.step(act)
-
-                if run_policy_steps % 10000 == 0:
-                    print('current reward = ', reward)
-                
-                if done:
-                    print('Got enough reward. done! party times :D')
-            
 
                 observations.append(obs)
                 actions.append(act)
                 rewards.append(reward)
                 v_preds.append(v_pred)
+                actions_to_log.append(act)
+
+
+                if run_policy_steps % 10000 == 0:
+                    print('current obs = ', obs)
+                    print('current reward = ', reward)
+                    print('current action = ', ac)
+
+                if done:
+                    print('Got enough reward. done! party times :D')
+                
+                if run_policy_steps % 100000 == 0:
+                    store_actions(iteration, actions_to_log)
+                    actions_to_log = []
 
                 if done:
                     next_obs = np.stack([next_obs]).astype(dtype=np.float32)  # prepare to feed placeholder Policy.obs
@@ -115,7 +129,7 @@ def main(args):
             # output of this discriminator is reward
             d_rewards = D.get_rewards(agent_s=observations, agent_a=actions)
             d_rewards = np.reshape(d_rewards, newshape=[-1]).astype(dtype=np.float32)
-
+            print('disc rewards=', d_rewards)
             gaes = PPO.get_gaes(rewards=d_rewards, v_preds=v_preds, v_preds_next=v_preds_next)
             gaes = np.array(gaes).astype(dtype=np.float32)
             # gaes = (gaes - gaes.mean()) / gaes.std()
@@ -125,6 +139,8 @@ def main(args):
             inp = [observations, actions, gaes, d_rewards, v_preds_next]
             PPO.assign_policy_parameters()
             for epoch in range(6):
+                print('*******************Optimizing policy**************************')
+                print('Epoch=', epoch)
                 sample_indices = np.random.randint(low=0, high=observations.shape[0],
                                                    size=32)  # indices are in [low, high)
                 sampled_inp = [np.take(a=a, indices=sample_indices, axis=0) for a in inp]  # sample training data
