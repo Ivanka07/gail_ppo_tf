@@ -68,11 +68,13 @@ def main(args):
                 run_policy_steps += 1
                 obs = np.stack([obs]).astype(dtype=np.float32)  # prepare to feed placeholder Policy.obs
                 act, v_pred = Policy.act(obs=obs, stochastic=True)
-                print('Action = ', act, 'State Value', v_pred)
-                act = np.asscalar(act)
+                #print('Action = ', act, 'State Value', v_pred)
+                #act = np.asscalar(act)
                 v_pred = np.asscalar(v_pred)
+                #we use constant velocity 2.5
+                _act = [act[0],act[1], act[2], 2.5]
                 next_obs, reward, done, info = env.step(act)
-
+                
                 observations.append(obs)
                 actions.append(act)
                 rewards.append(reward)
@@ -83,7 +85,8 @@ def main(args):
                 if run_policy_steps % 10000 == 0:
                     print('current obs = ', obs)
                     print('current reward = ', reward)
-                    print('current action = ', ac)
+                    print('current action = ', act)
+                    print('Action = ', _act, 'State Value', v_pred)
 
                 if done:
                     print('Got enough reward. done! party times :D')
