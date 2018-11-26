@@ -1,4 +1,5 @@
 import tensorflow as tf
+import gym
 
 
 class Policy_net:
@@ -11,14 +12,20 @@ class Policy_net:
         ob_space = env.observation_space
         act_space = env.action_space
 
+        _units = 0
+        if  isinstance(env.action_space, gym.spaces.Box):
+            _units = env.action_space.shape[0]
+        elif isinstance(env.action_space, gym.spaces.Discrete):
+            _units = env.action_space.n
+
         with tf.variable_scope(name):
             self.obs = tf.placeholder(dtype=tf.float32, shape=[None] + list(ob_space.shape), name='obs')
 
             with tf.variable_scope('policy_net'):
                 layer_1 = tf.layers.dense(inputs=self.obs, units=20, activation=tf.tanh)
                 layer_2 = tf.layers.dense(inputs=layer_1, units=20, activation=tf.tanh)
-                layer_3 = tf.layers.dense(inputs=layer_2, units=act_space.n, activation=tf.tanh)
-                self.act_probs = tf.layers.dense(inputs=layer_3, units=act_space.n, activation=tf.nn.softmax)
+                layer_3 = tf.layers.dense(inputs=layer_2, units=_units, activation=tf.tanh)
+                self.act_probs = tf.layers.dense(inputs=layer_3, units=_units, activation=tf.nn.softmax)
 
             with tf.variable_scope('value_net'):
                 layer_1 = tf.layers.dense(inputs=self.obs, units=20, activation=tf.tanh)

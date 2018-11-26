@@ -13,14 +13,20 @@ class Discriminator:
             self.scope = tf.get_variable_scope().name
             self.expert_s = tf.placeholder(dtype=tf.float32, shape=[None] + list(env.observation_space.shape))
             self.expert_a = tf.placeholder(dtype=tf.int32, shape=[None])
-            expert_a_one_hot = tf.one_hot(self.expert_a, depth=env.action_space.n)
+            _depth = 0
+            if  isinstance(env.action_space, gym.spaces.Box):
+                _depth = env.action_space.shape[0]
+            elif isinstance(env.action_space, gym.spaces.Discrete):
+                _depth = env.action_space.n
+            print('Depth=', _depth)
+            expert_a_one_hot = tf.one_hot(self.expert_a, depth=_depth)
             # add noise for stabilise training
             expert_a_one_hot += tf.random_normal(tf.shape(expert_a_one_hot), mean=0.2, stddev=0.1, dtype=tf.float32)/1.2
             expert_s_a = tf.concat([self.expert_s, expert_a_one_hot], axis=1)
 
             self.agent_s = tf.placeholder(dtype=tf.float32, shape=[None] + list(env.observation_space.shape))
             self.agent_a = tf.placeholder(dtype=tf.int32, shape=[None])
-            agent_a_one_hot = tf.one_hot(self.agent_a, depth=env.action_space.n)
+            agent_a_one_hot = tf.one_hot(self.agent_a, depth=_depth)
             # add noise for stabilise training
             agent_a_one_hot += tf.random_normal(tf.shape(agent_a_one_hot), mean=0.2, stddev=0.1, dtype=tf.float32)/1.2
             agent_s_a = tf.concat([self.agent_s, agent_a_one_hot], axis=1)
