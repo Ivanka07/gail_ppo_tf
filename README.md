@@ -1,4 +1,5 @@
 # Generative Adversarial Imitation Learning  
+
 Implementation of Generative Adversarial Imitation Learning(GAIL) using tensorflow  
 
 ## Dependencies
@@ -52,6 +53,9 @@ tensorboard --logdir=log
 | ![](./images/graph.png) | ![](./images/legend.png) |  
 | :---: | :---: |  
 | Fig.1 Training results | legend |  
+
+## How to run 
+python run_gail.py --env FetchBase-v0 --obs triangle_obs.csv --acs triangle_acs.csv
 
 ## LICENSE
 MIT LICENSE
