@@ -25,7 +25,7 @@ def argparser():
 
 def store_actions(iteration, actions, dir='log_actions'):
     filename = dir + '/' + '_iteration'
-    np.savez(store_file, acs=actions)
+    np.savez(filename, acs=actions)
 
 
 def main(args):
