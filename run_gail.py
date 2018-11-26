@@ -18,7 +18,7 @@ def argparser():
     parser.add_argument('--env', default='FetchBase-v0')
     parser.add_argument('--obs', default='observations.csv')
     parser.add_argument('--acs', default='actions.csv')
-    parser.add_argument('--log_actions',, default='log_actions')
+    parser.add_argument('--log_actions', default='log_actions')
     parser.add_argument('--max_reward', default=30, type=int)
     return parser.parse_args()
 

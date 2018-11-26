@@ -8,16 +8,15 @@ class Policy_net:
         :param name: string
         :param env: gym env
         """
-
         ob_space = env.observation_space
         act_space = env.action_space
-
+        
         _units = 0
         if  isinstance(env.action_space, gym.spaces.Box):
             _units = env.action_space.shape[0]
         elif isinstance(env.action_space, gym.spaces.Discrete):
             _units = env.action_space.n
-
+        
         with tf.variable_scope(name):
             self.obs = tf.placeholder(dtype=tf.float32, shape=[None] + list(ob_space.shape), name='obs')
 
@@ -40,7 +39,9 @@ class Policy_net:
             self.scope = tf.get_variable_scope().name
 
     def act(self, obs, stochastic=True):
+        print('Observation= ', obs)
         if stochastic:
+            print('Acting stochasticly , ', self.act_stochastic)
             return tf.get_default_session().run([self.act_stochastic, self.v_preds], feed_dict={self.obs: obs})
         else:
             return tf.get_default_session().run([self.act_deterministic, self.v_preds], feed_dict={self.obs: obs})
