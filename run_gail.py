@@ -24,7 +24,8 @@ def argparser():
 
 
 def store_actions(iteration, actions, dir='log_actions'):
-    filename = dir + '/' + '_iteration'
+    filename = dir + '/' + str(iteration)
+    print('file name=', filename)
     np.savez(filename, acs=actions)
 
 
@@ -39,11 +40,9 @@ def main(args):
     PPO = PPOTrain(Policy, Old_Policy, gamma=args.gamma)
     D = Discriminator(env)
 
-    print('observations=', args.obs)
-    print('actions=', args.acs)
     expert_observations = np.genfromtxt('trajectory/'+ args.obs)
     expert_actions = np.genfromtxt('trajectory/'+ args.acs, dtype=np.int32)
-
+  
     saver = tf.train.Saver()
 
     with tf.Session() as sess:
@@ -68,7 +67,7 @@ def main(args):
                 run_policy_steps += 1
                 obs = np.stack([obs]).astype(dtype=np.float32)  # prepare to feed placeholder Policy.obs
                 act, v_pred = Policy.act(obs=obs, stochastic=True)
-                #print('Action = ', act, 'State Value', v_pred)
+            #    print('Action = ', act, 'State Value', v_pred)
                 #act = np.asscalar(act)
                 v_pred = np.asscalar(v_pred)
                 #we use constant velocity 2.5
@@ -87,6 +86,7 @@ def main(args):
                     print('current reward = ', reward)
                     print('current action = ', act)
                     print('Action = ', _act, 'State Value', v_pred)
+                    print('Sum of rewards = ', sum(rewards))
 
                 if done:
                     print('Got enough reward. done! party times :D')
@@ -99,6 +99,7 @@ def main(args):
                     next_obs = np.stack([next_obs]).astype(dtype=np.float32)  # prepare to feed placeholder Policy.obs
                     _, v_pred = Policy.act(obs=next_obs, stochastic=True)
                     v_preds_next = v_preds[1:] + [np.asscalar(v_pred)]
+                    print('Predicted next values=', v_preds_next)
                     obs = env.reset()
                     break
                 else:
@@ -132,7 +133,7 @@ def main(args):
             # output of this discriminator is reward
             d_rewards = D.get_rewards(agent_s=observations, agent_a=actions)
             d_rewards = np.reshape(d_rewards, newshape=[-1]).astype(dtype=np.float32)
-            print('disc rewards=', d_rewards)
+            print('rewards got from the discriminator', d_rewards)
             gaes = PPO.get_gaes(rewards=d_rewards, v_preds=v_preds, v_preds_next=v_preds_next)
             gaes = np.array(gaes).astype(dtype=np.float32)
             # gaes = (gaes - gaes.mean()) / gaes.std()

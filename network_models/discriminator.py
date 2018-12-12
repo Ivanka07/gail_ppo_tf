@@ -42,7 +42,7 @@ class Discriminator:
                 loss_agent = tf.reduce_mean(tf.log(tf.clip_by_value(1 - prob_2, 0.01, 1)))
                 loss = loss_expert + loss_agent
                 loss = -loss
-                tf.summary.scalar('discriminator', loss)
+                tf.summary.scalar('discriminator_loss', loss)
 
             optimizer = tf.train.AdamOptimizer()
             self.train_op = optimizer.minimize(loss)
@@ -63,6 +63,7 @@ class Discriminator:
                                                                       self.agent_a: agent_a})
 
     def get_rewards(self, agent_s, agent_a):
+        print("+++++++++++ calculating rewards ++++++++++")
         return tf.get_default_session().run(self.rewards, feed_dict={self.agent_s: agent_s,
                                                                      self.agent_a: agent_a})
 
