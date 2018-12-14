@@ -23,8 +23,8 @@ def argparser():
     return parser.parse_args()
 
 
-def store_actions(iteration, actions, dir='log_actions'):
-    filename = dir + '/' + str(iteration)
+def store_actions(iteration, inner_iter,  actions, dir='log_actions'):
+    filename = dir + '/' + str(iteration) + '_' + str(inner_iter)
     print('file name=', filename)
     np.savez(filename, acs=actions)
 
@@ -61,6 +61,7 @@ def main(args):
             rewards = []
             v_preds = []
             run_policy_steps = 0
+            inner_iter = 0
             while True:
                 if run_policy_steps % 10000 == 0:
                     print('current policy step=', run_policy_steps)
@@ -92,7 +93,8 @@ def main(args):
                     print('Got enough reward. done! party times :D')
                 
                 if run_policy_steps % 100000 == 0:
-                    store_actions(iteration, actions_to_log)
+                    inner_iter+=1
+                    store_actions(iteration, inner_iter, actions_to_log)
                     actions_to_log = []
 
                 if done:
