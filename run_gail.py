@@ -81,15 +81,17 @@ def main(args):
                 v_preds.append(v_pred)
                 actions_to_log.append(act)
 
+                done = env._success(None, None)
 
                 if run_policy_steps % 10000 == 0:
                     print('current obs = ', obs)
                     print('current reward = ', reward)
                     print('current action = ', act)
                     print('Action = ', _act, 'State Value', v_pred)
+                    print('Success?', env._success(None, None))
                     print('Sum of rewards = ', sum(rewards))
 
-                if done:
+                if env._success(None, None):
                     print('Got enough reward. done! party times :D')
                 
                 if run_policy_steps % 100000 == 0:
@@ -114,7 +116,7 @@ def main(args):
 
             if sum(rewards) >= args.max_reward:
                 success_num += 1
-                if success_num >= 100:
+                if success_num >= 10:
                     saver.save(sess, args.savedir + '/model.ckpt')
                     print('**************** Clear!! Model saved.*********************')
                     break
