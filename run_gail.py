@@ -19,7 +19,7 @@ def argparser():
     parser.add_argument('--obs', default='observations.csv')
     parser.add_argument('--acs', default='actions.csv')
     parser.add_argument('--log_actions', default='log_actions')
-    parser.add_argument('--max_reward', default=30, type=int)
+    parser.add_argument('--max_reward', default=3, type=int)
     return parser.parse_args()
 
 
@@ -68,7 +68,7 @@ def main(args):
                 run_policy_steps += 1
                 obs = np.stack([obs]).astype(dtype=np.float32)  # prepare to feed placeholder Policy.obs
                 act, v_pred = Policy.act(obs=obs, stochastic=True)
-            #    print('Action = ', act, 'State Value', v_pred)
+                print('Action = ', act, 'State Value', v_pred)
                 #act = np.asscalar(act)
                 v_pred = np.asscalar(v_pred)
                 #we use constant velocity 2.5
@@ -81,17 +81,17 @@ def main(args):
                 v_preds.append(v_pred)
                 actions_to_log.append(act)
 
-                done = env._success(None, None)
-
+                done = env._is_success(None, None)
+                print('Is done?=', done)
                 if run_policy_steps % 10000 == 0:
                     print('current obs = ', obs)
                     print('current reward = ', reward)
                     print('current action = ', act)
                     print('Action = ', _act, 'State Value', v_pred)
-                    print('Success?', env._success(None, None))
+                    print('Success?', env._is_success(None, None))
                     print('Sum of rewards = ', sum(rewards))
 
-                if env._success(None, None):
+                if env._is_success(None, None):
                     print('Got enough reward. done! party times :D')
                 
                 if run_policy_steps % 100000 == 0:
@@ -100,6 +100,7 @@ def main(args):
                     actions_to_log = []
 
                 if done:
+                    print('Done and prepare feeding the Value-NN')
                     next_obs = np.stack([next_obs]).astype(dtype=np.float32)  # prepare to feed placeholder Policy.obs
                     _, v_pred = Policy.act(obs=next_obs, stochastic=True)
                     v_preds_next = v_preds[1:] + [np.asscalar(v_pred)]
