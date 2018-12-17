@@ -32,7 +32,7 @@ class Policy_net:
                 self.v_preds = tf.layers.dense(inputs=layer_2, units=1, activation=None)
 
             #self.act_stochastic = tf.multinomial(tf.log(self.act_probs), num_samples=1)
-            self.act_stochastic = tf.truncated_normal((4,), mean=0.45, stddev=0.25, dtype=tf.float32, seed=0, name='action_sample')
+            self.act_stochastic = tf.truncated_normal((4,), mean=0, stddev=0.25, dtype=tf.float32, seed=0, name='action_sample')
             print('sct_stochastic', self.act_stochastic)
             #print(self.act_stochastic)
             self.act_stochastic = tf.reshape(self.act_stochastic, shape=[-1])

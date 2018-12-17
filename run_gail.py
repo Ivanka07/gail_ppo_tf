@@ -63,6 +63,7 @@ def main(args):
             run_policy_steps = 0
             inner_iter = 0
             while True:
+                env.render()
                 if run_policy_steps % 10000 == 0:
                     print('current policy step=', run_policy_steps)
                 run_policy_steps += 1
