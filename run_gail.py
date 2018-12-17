@@ -105,7 +105,7 @@ def main(args):
                     next_obs = np.stack([next_obs]).astype(dtype=np.float32)  # prepare to feed placeholder Policy.obs
                     _, v_pred = Policy.act(obs=next_obs, stochastic=True)
                     v_preds_next = v_preds[1:] + [np.asscalar(v_pred)]
-                    print('Predicted next values=', v_preds_next)
+                    print('Predicted next values length=', len(v_preds_next))
                     obs = env.reset()
                     break
                 else:
@@ -130,7 +130,13 @@ def main(args):
             actions = np.array(actions).astype(dtype=np.int32)
 
             # train discriminator
+
             for i in range(2):
+                print('~~~~~~~~~~~~~~~~~~~~Training the discriminator now ~~~~~~~~~~~~~~~~~~~~')
+                print('Length of the expert observations=', len(expert_observations))
+                print('Length of the expert actions=', len(expert_actions))
+                print('Length of the learner observations=', len(observations))
+                print('Length of the learner actions=', len(actions))
                 D.train(expert_s=expert_observations,
                         expert_a=expert_actions,
                         agent_s=observations,
