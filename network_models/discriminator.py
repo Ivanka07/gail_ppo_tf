@@ -11,9 +11,10 @@ class Discriminator:
         """
 
         with tf.variable_scope('discriminator'):
+            print('Creating placeholder with length', list(env.observation_space.shape))
             self.scope = tf.get_variable_scope().name
             self.expert_s = tf.placeholder(dtype=tf.float32, shape=[None] + list(env.observation_space.shape))
-            self.expert_a = tf.placeholder(dtype=tf.int32, shape=[None])
+            self.expert_a = tf.placeholder(dtype=tf.int32, shape=[None, 4])
             _depth = 0
             if  isinstance(env.action_space, gym.spaces.Box):
                 _depth = env.action_space.shape[0]
