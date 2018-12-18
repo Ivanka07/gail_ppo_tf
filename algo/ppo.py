@@ -3,7 +3,7 @@ import copy
 
 
 class PPOTrain:
-    def __init__(self, Policy, Old_Policy, gamma=0.95, clip_value=0.2, c_1=1, c_2=0.01):
+    def __init__(self, Policy, Old_Policy, actions_shape, gamma=0.95, clip_value=0.2, c_1=1, c_2=0.01):
         """
         :param Policy:
         :param Old_Policy:
@@ -28,7 +28,7 @@ class PPOTrain:
 
         # inputs for train_op
         with tf.variable_scope('train_inp'):
-            self.actions = tf.placeholder(dtype=tf.int32, shape=[None], name='actions')
+            self.actions = tf.placeholder(dtype=tf.float32, shape=[None] + list(actions_shape), name='actions')
             self.rewards = tf.placeholder(dtype=tf.float32, shape=[None], name='rewards')
             self.v_preds_next = tf.placeholder(dtype=tf.float32, shape=[None], name='v_preds_next')
             self.gaes = tf.placeholder(dtype=tf.float32, shape=[None], name='gaes')
@@ -37,11 +37,11 @@ class PPOTrain:
         act_probs_old = self.Old_Policy.act_probs
 
         # probabilities of actions which agent took with policy
-        act_probs = act_probs * tf.one_hot(indices=self.actions, depth=act_probs.shape[1])
+        act_probs = act_probs * self.actions #tf.one_hot(indices=self.actions, depth=act_probs.shape[1])
         act_probs = tf.reduce_sum(act_probs, axis=1)
 
         # probabilities of actions which agent took with old policy
-        act_probs_old = act_probs_old * tf.one_hot(indices=self.actions, depth=act_probs_old.shape[1])
+        act_probs_old = act_probs_old * self.actions#tf.one_hot(indices=self.actions, depth=act_probs_old.shape[1])
         act_probs_old = tf.reduce_sum(act_probs_old, axis=1)
 
         with tf.variable_scope('loss'):

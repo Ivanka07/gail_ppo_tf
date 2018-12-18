@@ -34,10 +34,8 @@ class Policy_net:
             #self.act_stochastic = tf.multinomial(tf.log(self.act_probs), num_samples=1)
             self.act_stochastic = tf.truncated_normal((4,), mean=0, stddev=0.25, dtype=tf.float32, seed=0, name='action_sample')
             print('sct_stochastic', self.act_stochastic)
-            #print(self.act_stochastic)
             self.act_stochastic = tf.reshape(self.act_stochastic, shape=[-1])
             self.act_deterministic = tf.argmax(self.act_probs, axis=1)
-
             self.scope = tf.get_variable_scope().name
 
     def act(self, obs, stochastic=True):

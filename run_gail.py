@@ -2,6 +2,7 @@
 import argparse
 import gym
 import numpy as np
+import datetime
 import tensorflow as tf
 import gym_fetch_base_motions
 from network_models.policy_net import Policy_net
@@ -20,6 +21,7 @@ def argparser():
     parser.add_argument('--acs', default='actions.csv')
     parser.add_argument('--log_actions', default='log_actions')
     parser.add_argument('--max_reward', default=3, type=int)
+    parser.add_argument('--success_num', default=20, type=int)
     return parser.parse_args()
 
 
@@ -37,12 +39,12 @@ def main(args):
     
     Policy = Policy_net('policy', env)
     Old_Policy = Policy_net('old_policy', env)
-    PPO = PPOTrain(Policy, Old_Policy, gamma=args.gamma)
+    PPO = PPOTrain(Policy, Old_Policy, env.action_space.shape, gamma=args.gamma)
     D = Discriminator(env)
 
     expert_observations = np.genfromtxt('trajectory/'+ args.obs)
     expert_actions = np.genfromtxt('trajectory/'+ args.acs, dtype=np.int32)
-  
+    print('Expert actions shape=', expert_actions.shape)
     saver = tf.train.Saver()
 
     with tf.Session() as sess:
@@ -84,7 +86,7 @@ def main(args):
 
                 done = env._is_success(None, None)
                 print('Is done?=', done)
-                if run_policy_steps % 10000 == 0:
+                if run_policy_steps % 100000 == 0:
                     print('current obs = ', obs)
                     print('current reward = ', reward)
                     print('current action = ', act)
@@ -95,10 +97,13 @@ def main(args):
                 if env._is_success(None, None):
                     print('Got enough reward. done! party times :D')
                 
-                if run_policy_steps % 100000 == 0:
+                if run_policy_steps % 100 == 0:
                     inner_iter+=1
                     store_actions(iteration, inner_iter, actions_to_log)
                     actions_to_log = []
+
+                if inner_iter==1:
+                    done = True
 
                 if done:
                     print('Done and prepare feeding the Value-NN')
@@ -118,8 +123,8 @@ def main(args):
 
             if sum(rewards) >= args.max_reward:
                 success_num += 1
-                if success_num >= 10:
-                    saver.save(sess, args.savedir + '/model.ckpt')
+                if success_num >= args.success_num:
+                    saver.save(sess, args.savedir + '/model_' + str(datetime.date.today()) +  '.ckpt')
                     print('**************** Clear!! Model saved.*********************')
                     break
             else:
@@ -133,10 +138,11 @@ def main(args):
 
             for i in range(2):
                 print('~~~~~~~~~~~~~~~~~~~~Training the discriminator now ~~~~~~~~~~~~~~~~~~~~')
-                print('Length of the expert observations=', len(expert_observations))
-                print('Length of the expert actions=', len(expert_actions))
+                print('Length of the expert observations=', expert_observations.shape)
+                print('Length of the expert actions=', expert_actions.shape)
                 print('Length of the learner observations=', len(observations))
                 print('Length of the learner actions=', len(actions))
+              #  reshaped = expert_actions.reshape(4500, 4)
                 D.train(expert_s=expert_observations,
                         expert_a=expert_actions,
                         agent_s=observations,
@@ -155,8 +161,7 @@ def main(args):
             inp = [observations, actions, gaes, d_rewards, v_preds_next]
             PPO.assign_policy_parameters()
             for epoch in range(6):
-                print('*******************Optimizing policy**************************')
-                print('Epoch=', epoch)
+                print('*******************Optimizing policy on epoch={}**************************'.format(epoch))
                 sample_indices = np.random.randint(low=0, high=observations.shape[0],
                                                    size=32)  # indices are in [low, high)
                 sampled_inp = [np.take(a=a, indices=sample_indices, axis=0) for a in inp]  # sample training data
