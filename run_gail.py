@@ -15,7 +15,7 @@ def argparser():
     parser.add_argument('--logdir', help='log directory', default='log/train/gail')
     parser.add_argument('--savedir', help='save directory', default='trained_models/gail')
     parser.add_argument('--gamma', default=0.95)
-    parser.add_argument('--iteration', default=int(1e4))
+    parser.add_argument('--iteration', default=int(5e4))
     parser.add_argument('--env', default='FetchBase-v0')
     parser.add_argument('--obs', default='observations.csv')
     parser.add_argument('--acs', default='actions.csv')
@@ -65,7 +65,7 @@ def main(args):
             run_policy_steps = 0
             inner_iter = 0
             while True:
-                env.render()
+                #env.render()
                 if run_policy_steps % 10000 == 0:
                     print('current policy step=', run_policy_steps)
                 run_policy_steps += 1
@@ -97,13 +97,10 @@ def main(args):
                 if env._is_success(None, None):
                     print('Got enough reward. done! party times :D')
                 
-                if run_policy_steps % 100 == 0:
+                if run_policy_steps % 10000 == 0:
                     inner_iter+=1
                     store_actions(iteration, inner_iter, actions_to_log)
                     actions_to_log = []
-
-                if inner_iter==1:
-                    done = True
 
                 if done:
                     print('Done and prepare feeding the Value-NN')
