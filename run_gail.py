@@ -15,12 +15,13 @@ def argparser():
     parser.add_argument('--logdir', help='log directory', default='log/train/gail')
     parser.add_argument('--savedir', help='save directory', default='trained_models/gail')
     parser.add_argument('--gamma', default=0.95)
-    parser.add_argument('--iteration', default=int(5e4))
+    parser.add_argument('--iteration', default=int(3e4))
     parser.add_argument('--env', default='FetchBase-v0')
     parser.add_argument('--obs', default='observations.csv')
     parser.add_argument('--acs', default='actions.csv')
     parser.add_argument('--log_actions', default='log_actions')
     parser.add_argument('--max_reward', default=3, type=int)
+    parser.add_argument('--render', default=1, choices=[0,1], type=int)
     parser.add_argument('--success_num', default=20, type=int)
     parser.add_argument('--max_action_num', default=25000, type=int)
     return parser.parse_args()
@@ -66,7 +67,8 @@ def main(args):
             run_policy_steps = 0
             inner_iter = 0
             while True:
-                env.render()
+                if args.render:
+                    env.render()
                 if run_policy_steps % 10000 == 0:
                     print('current policy step=', run_policy_steps)
                 run_policy_steps += 1
