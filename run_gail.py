@@ -22,6 +22,7 @@ def argparser():
     parser.add_argument('--log_actions', default='log_actions')
     parser.add_argument('--max_reward', default=3, type=int)
     parser.add_argument('--success_num', default=20, type=int)
+    parser.add_argument('--max_action_num', default=25000, type=int)
     return parser.parse_args()
 
 
@@ -65,7 +66,7 @@ def main(args):
             run_policy_steps = 0
             inner_iter = 0
             while True:
-                #env.render()
+                env.render()
                 if run_policy_steps % 10000 == 0:
                     print('current policy step=', run_policy_steps)
                 run_policy_steps += 1
@@ -75,32 +76,30 @@ def main(args):
                 #act = np.asscalar(act)
                 v_pred = np.asscalar(v_pred)
                 #we use constant velocity 2.5
-                _act = [act[0],act[1], act[2], 2.5]
                 next_obs, reward, done, info = env.step(act)
                 
                 observations.append(obs)
                 actions.append(act)
                 rewards.append(reward)
                 v_preds.append(v_pred)
-                actions_to_log.append(act)
+                #actions_to_log.append(act)
 
                 done = env._is_success(None, None)
                 print('Is done?=', done)
                 if run_policy_steps % 100000 == 0:
                     print('current obs = ', obs)
                     print('current reward = ', reward)
-                    print('current action = ', act)
-                    print('Action = ', _act, 'State Value', v_pred)
-                    print('Success?', env._is_success(None, None))
+                    print('current action = ', act, 'State Value', v_pred)
+                    print('run val policy step =', run_policy_steps, ' is done=', done)
                     print('Sum of rewards = ', sum(rewards))
 
-                if env._is_success(None, None):
-                    print('Got enough reward. done! party times :D')
+                if done:
+                    print('----------------- Got enough reward. done! party time :D-------------------')
                 
-                if run_policy_steps % 10000 == 0:
-                    inner_iter+=1
-                    store_actions(iteration, inner_iter, actions_to_log)
-                    actions_to_log = []
+                #if run_policy_steps % 1000 == 0:
+                #    inner_iter+=1
+                #    store_actions(iteration, inner_iter, actions_to_log)
+                #    actions_to_log = []
 
                 if done:
                     print('Done and prepare feeding the Value-NN')
@@ -127,13 +126,22 @@ def main(args):
             else:
                 success_num = 0
 
-            # convert list to numpy array for feeding tf.placeholder
+            #convert list to numpy array for feeding tf.placeholder
             observations = np.reshape(observations, newshape=[-1] + list(ob_space.shape))
-            actions = np.array(actions).astype(dtype=np.int32)
+            actions = np.array(actions).astype(dtype=np.float32)
+
+            #check if stored obs and acs are not more then max_action_num
+            if actions.shape[0] > args.max_action_num:
+                #sample from actions and observations
+                n = int(actions.shape[0] / args.max_action_num)
+                print('what is n=', n)
+                if n >= 2: 
+                    actions = actions[1::n]
+                    observations = observations[1::n].copy()
 
             # train discriminator
 
-            for i in range(2):
+            for i in range(3):
                 print('~~~~~~~~~~~~~~~~~~~~Training the discriminator now ~~~~~~~~~~~~~~~~~~~~')
                 print('Length of the expert observations=', expert_observations.shape)
                 print('Length of the expert actions=', expert_actions.shape)
@@ -158,7 +166,7 @@ def main(args):
             inp = [observations, actions, gaes, d_rewards, v_preds_next]
             PPO.assign_policy_parameters()
             for epoch in range(6):
-                print('*******************Optimizing policy on epoch={}**************************'.format(epoch))
+                print('*******************Optimizing policy on epoch={} and iteration={}**************************'.format(epoch, iteration))
                 sample_indices = np.random.randint(low=0, high=observations.shape[0],
                                                    size=32)  # indices are in [low, high)
                 sampled_inp = [np.take(a=a, indices=sample_indices, axis=0) for a in inp]  # sample training data
