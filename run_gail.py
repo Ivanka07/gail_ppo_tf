@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 import argparse
 import gym
+import math
 import numpy as np
 import datetime
 import tensorflow as tf
@@ -20,10 +21,10 @@ def argparser():
     parser.add_argument('--obs', default='observations.csv')
     parser.add_argument('--acs', default='actions.csv')
     parser.add_argument('--log_actions', default='log_actions')
-    parser.add_argument('--max_reward', default=3, type=int)
+    parser.add_argument('--max_reward', default=15, type=int)
     parser.add_argument('--render', default=1, choices=[0,1], type=int)
     parser.add_argument('--success_num', default=20, type=int)
-    parser.add_argument('--max_action_num', default=25000, type=int)
+    parser.add_argument('--max_action_num', default=15000, type=int)
     return parser.parse_args()
 
 
@@ -96,9 +97,10 @@ def main(args):
                     print('Sum of rewards = ', sum(rewards))
 
                 if done:
-                    print('----------------- Got enough reward. done! party time :D-------------------')
+                    print('----------------------------- Got enough reward. done! party time :D---------------------------------')
                 
                 #if run_policy_steps % 1000 == 0:
+                #    done = True
                 #    inner_iter+=1
                 #    store_actions(iteration, inner_iter, actions_to_log)
                 #    actions_to_log = []
@@ -131,16 +133,19 @@ def main(args):
             #convert list to numpy array for feeding tf.placeholder
             observations = np.reshape(observations, newshape=[-1] + list(ob_space.shape))
             actions = np.array(actions).astype(dtype=np.float32)
-
+            v_preds_next = np.array(v_preds_next).astype(dtype=np.float32)
+            
             #check if stored obs and acs are not more then max_action_num
+            assert observations.shape[0] == actions.shape[0]
+            assert observations.shape[0] == v_preds_next.shape[0]
             if actions.shape[0] > args.max_action_num:
                 #sample from actions and observations
-                n = int(actions.shape[0] / args.max_action_num)
+                n = int(math.ceil(actions.shape[0] / args.max_action_num))
                 print('what is n=', n)
                 if n >= 2: 
-                    actions = actions[1::n]
+                    actions = actions[1::n].copy()
                     observations = observations[1::n].copy()
-
+                    v_preds_next = v_preds_next[1::n].copy()
             # train discriminator
 
             for i in range(3):
@@ -158,12 +163,10 @@ def main(args):
             # output of this discriminator is reward
             d_rewards = D.get_rewards(agent_s=observations, agent_a=actions)
             d_rewards = np.reshape(d_rewards, newshape=[-1]).astype(dtype=np.float32)
-            print('rewards got from the discriminator', d_rewards)
             gaes = PPO.get_gaes(rewards=d_rewards, v_preds=v_preds, v_preds_next=v_preds_next)
             gaes = np.array(gaes).astype(dtype=np.float32)
             # gaes = (gaes - gaes.mean()) / gaes.std()
-            v_preds_next = np.array(v_preds_next).astype(dtype=np.float32)
-
+            #v_preds_next = np.array(v_preds_next).astype(dtype=np.float32)
             # train policy
             inp = [observations, actions, gaes, d_rewards, v_preds_next]
             PPO.assign_policy_parameters()
