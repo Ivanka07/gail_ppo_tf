@@ -2,6 +2,7 @@
 import argparse
 import gym
 import math
+import logging
 import numpy as np
 import datetime
 import tensorflow as tf
@@ -16,15 +17,15 @@ def argparser():
     parser.add_argument('--logdir', help='log directory', default='log/train/gail')
     parser.add_argument('--savedir', help='save directory', default='trained_models/gail')
     parser.add_argument('--gamma', default=0.95)
-    parser.add_argument('--iteration', default=int(3e4))
+    parser.add_argument('--iteration', default=int(5e4))
     parser.add_argument('--env', default='FetchBase-v0')
     parser.add_argument('--obs', default='observations.csv')
     parser.add_argument('--acs', default='actions.csv')
     parser.add_argument('--log_actions', default='log_actions')
-    parser.add_argument('--max_reward', default=15, type=int)
+    parser.add_argument('--max_reward', default=30, type=int)
     parser.add_argument('--render', default=1, choices=[0,1], type=int)
-    parser.add_argument('--success_num', default=20, type=int)
-    parser.add_argument('--max_action_num', default=15000, type=int)
+    parser.add_argument('--success_num', default=15, type=int)
+    parser.add_argument('--max_action_num', default=20000, type=int)
     return parser.parse_args()
 
 
@@ -106,11 +107,11 @@ def main(args):
                 #    actions_to_log = []
 
                 if done:
-                    print('Done and prepare feeding the Value-NN')
+                    logging.debug('Done and prepare feeding the Value-NN')
                     next_obs = np.stack([next_obs]).astype(dtype=np.float32)  # prepare to feed placeholder Policy.obs
                     _, v_pred = Policy.act(obs=next_obs, stochastic=True)
                     v_preds_next = v_preds[1:] + [np.asscalar(v_pred)]
-                    print('Predicted next values length=', len(v_preds_next))
+                    #print('Predicted next values length=', len(v_preds_next))
                     obs = env.reset()
                     break
                 else:
@@ -123,10 +124,12 @@ def main(args):
 
             if sum(rewards) >= args.max_reward:
                 success_num += 1
+                logging.debug('success number = {}'.format(success_num))
                 if success_num >= args.success_num:
-                    saver.save(sess, args.savedir + '/model_' + str(datetime.date.today()) +  '.ckpt')
-                    print('**************** Clear!! Model saved.*********************')
-                    break
+                    saver.save(sess, args.savedir + '/model_' + str(datetime.date.today()) +'_iter'+ str(iteration)  +  '.ckpt')
+                    logging.debug('**************** Clear!! Model saved on iteration={}.*********************'.format(iteration))
+                    if iteration == (args.iteration -1):
+                        break
             else:
                 success_num = 0
 
@@ -149,11 +152,11 @@ def main(args):
             # train discriminator
 
             for i in range(3):
-                print('~~~~~~~~~~~~~~~~~~~~Training the discriminator now ~~~~~~~~~~~~~~~~~~~~')
-                print('Length of the expert observations=', expert_observations.shape)
-                print('Length of the expert actions=', expert_actions.shape)
-                print('Length of the learner observations=', len(observations))
-                print('Length of the learner actions=', len(actions))
+                logging.debug('~~~~~~~~~~~~~~~~~~~~Training the discriminator now ~~~~~~~~~~~~~~~~~~~~')
+                logging.debug('Length of the expert observations={}'.format( expert_observations.shape))
+                logging.debug('Length of the expert actions={}'.format(expert_actions.shape))
+                logging.debug('Length of the learner observations={}'.format(len(observations)))
+                logging.debug('Length of the learner actions='.format(len(actions)))
               #  reshaped = expert_actions.reshape(4500, 4)
                 D.train(expert_s=expert_observations,
                         expert_a=expert_actions,
@@ -192,5 +195,7 @@ def main(args):
 
 
 if __name__ == '__main__':
+    logging.basicConfig(filename='training.log', level=logging.DEBUG)
+    logging.debug('~~~~~~~~~~~starting ~~~~~~~~~~~~~~')
     args = argparser()
     main(args)
