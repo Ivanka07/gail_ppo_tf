@@ -36,6 +36,7 @@ def main(args):
         success_num = 0
 
         for iteration in range(args.iteration):
+            print('Test on iteration = ', iteration)
             rewards = []
             run_policy_steps = 0
             while True:  # run policy RUN_POLICY_STEPS which is much less than episode length

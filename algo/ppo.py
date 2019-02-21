@@ -41,7 +41,7 @@ class PPOTrain:
         act_probs = tf.reduce_sum(act_probs, axis=1)
 
         # probabilities of actions which agent took with old policy
-        act_probs_old = act_probs_old * self.actions#tf.one_hot(indices=self.actions, depth=act_probs_old.shape[1])
+        act_probs_old = act_probs_old * self.actions #tf.one_hot(indices=self.actions, depth=act_probs_old.shape[1])
         act_probs_old = tf.reduce_sum(act_probs_old, axis=1)
 
         with tf.variable_scope('loss'):
