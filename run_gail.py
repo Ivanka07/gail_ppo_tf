@@ -110,7 +110,7 @@ def main(args):
                 #    obs = env.reset()
                 #    break
                 #else:
-                #    obs = next_obs
+                obs = next_obs
 
             logging.debug('Done and prepare feeding the Value-NN')
             next_obs = np.stack([next_obs]).astype(dtype=np.float32)  # prepare to feed placeholder Policy.obs
