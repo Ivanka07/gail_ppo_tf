@@ -22,7 +22,7 @@ def argparser():
     parser.add_argument('--obs', default='observations.csv')
     parser.add_argument('--acs', default='actions.csv')
     parser.add_argument('--log_actions', default='log_actions')
-    parser.add_argument('--max_reward', default=30, type=int)
+    parser.add_argument('--max_reward', default=45, type=int)
     parser.add_argument('--render', default=1, choices=[0,1], type=int)
     parser.add_argument('--success_num', default=15, type=int)
     parser.add_argument('--max_action_num', default=20000, type=int)
@@ -97,7 +97,11 @@ def main(args):
                     print('Sum of rewards = ', sum(rewards))
 
                 if done:
-                    print('----------------------------- Got enough reward. done! party time :D---------------------------------')
+                    print('----------------------------- Got enough reward. done! reseting environment---------------------------------')
+                    obs = env.reset()
+                else:
+                    obs = next_obs
+
                 
             
                 #if done:
@@ -109,7 +113,7 @@ def main(args):
                 #    obs = env.reset()
                 #    break
                 #else:
-                obs = next_obs
+                    #obs = next_obs
 
             logging.debug('Done and prepare feeding the Value-NN')
             next_obs = np.stack([next_obs]).astype(dtype=np.float32)  # prepare to feed placeholder Policy.obs
