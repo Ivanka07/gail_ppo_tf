@@ -100,16 +100,16 @@ def main(args):
                     print('----------------------------- Got enough reward. done! party time :D---------------------------------')
                 
             
-                if done:
-                    logging.debug('Done and prepare feeding the Value-NN')
-                    next_obs = np.stack([next_obs]).astype(dtype=np.float32)  # prepare to feed placeholder Policy.obs
-                    _, v_pred = Policy.act(obs=next_obs, stochastic=True)
-                    v_preds_next = v_preds[1:] + [np.asscalar(v_pred)]
-                    #print('Predicted next values length=', len(v_preds_next))
-                    obs = env.reset()
-                    break
-                else:
-                    obs = next_obs
+                #if done:
+                #    logging.debug('Done and prepare feeding the Value-NN')
+                #    next_obs = np.stack([next_obs]).astype(dtype=np.float32)  # prepare to feed placeholder Policy.obs
+                #    _, v_pred = Policy.act(obs=next_obs, stochastic=True)
+                #    v_preds_next = v_preds[1:] + [np.asscalar(v_pred)]
+                #    #print('Predicted next values length=', len(v_preds_next))
+                #    obs = env.reset()
+                #    break
+                #else:
+                #    obs = next_obs
 
             logging.debug('Done and prepare feeding the Value-NN')
             next_obs = np.stack([next_obs]).astype(dtype=np.float32)  # prepare to feed placeholder Policy.obs
@@ -123,7 +123,7 @@ def main(args):
 
             if sum(rewards) >= args.max_reward:
                 success_num += 1
-                logging.debug('**************** success number = {}. saving the model'.format(success_num))
+                logging.debug('**************** success number = {}.'.format(success_num))
                 if success_num >= args.success_num:
                     saver.save(sess, args.savedir + '/model_' + str(datetime.date.today()) +'_iter'+ str(iteration)  +  '.ckpt', max_to_keep=1000)
                     logging.debug('**************** Clear!! Model saved on iteration={}.*********************'.format(iteration))
