@@ -74,6 +74,7 @@ def main(args):
                     env.render()
                 run_policy_steps += 1
                 obs = np.stack([obs]).astype(dtype=np.float32)  # prepare to feed placeholder Policy.obs
+                print(obs)
                 act, v_pred = Policy.act(obs=obs, stochastic=True)
                 #print('Action = ', act, 'State Value', v_pred)
                 #act = np.asscalar(act)
@@ -149,9 +150,7 @@ def main(args):
                     observations = observations[1::n].copy()
                     v_preds_next = v_preds_next[1::n].copy()
             # train discriminator
-            print('***************************************************************************** Observations shape = {}'.format(observations.shape))
-            print('***************************************************************************** Actions shape = {}'.format(actions.shape))
-
+            
             for i in range(6):
                 logging.debug('~~~~~~~~~~~~~~~~~~~~Training the discriminator now ~~~~~~~~~~~~~~~~~~~~')
                 logging.debug('Length of the expert observations={}'.format( expert_observations.shape))
