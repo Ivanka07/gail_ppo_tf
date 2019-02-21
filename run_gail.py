@@ -50,7 +50,7 @@ def main(args):
     expert_actions = np.genfromtxt('trajectory/'+ args.acs, dtype=np.int32)
     #print('****************************************Expert observations shape=', expert_observations.shape)
     #print('*Expert actions shape=', expert_actions.shape)
-    saver = tf.train.Saver()
+    saver = tf.train.Saver(max_to_keep=1000)
 
     with tf.Session() as sess:
         writer = tf.summary.FileWriter(args.logdir, sess.graph)
@@ -120,12 +120,11 @@ def main(args):
                                , iteration)
             writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='episode_reward', simple_value=sum(rewards))])
                                , iteration)
-
             if sum(rewards) >= args.max_reward:
                 success_num += 1
                 logging.debug('**************** success number = {}.'.format(success_num))
                 if success_num >= args.success_num:
-                    saver.save(sess, args.savedir + '/model_' + str(datetime.date.today()) +'_iter'+ str(iteration)  +  '.ckpt', max_to_keep=1000)
+                    saver.save(sess, args.savedir + '/model_' + str(datetime.date.today()) +'_iter_'+ str(iteration)  +  '.ckpt')
                     logging.debug('**************** Clear!! Model saved on iteration={}.*********************'.format(iteration))
                     if iteration == (args.iteration -1):
                         break
