@@ -17,7 +17,7 @@ def argparser():
     parser.add_argument('--logdir', help='log directory', default='log/train/gail')
     parser.add_argument('--savedir', help='save directory', default='trained_models/gail')
     parser.add_argument('--gamma', default=0.95)
-    parser.add_argument('--iteration', default=int(5e4))
+    parser.add_argument('--iteration', default=int(2e4))
     parser.add_argument('--env', default='FetchBase-v0')
     parser.add_argument('--obs', default='observations.csv')
     parser.add_argument('--acs', default='actions.csv')
@@ -48,7 +48,8 @@ def main(args):
 
     expert_observations = np.genfromtxt('trajectory/'+ args.obs)
     expert_actions = np.genfromtxt('trajectory/'+ args.acs, dtype=np.int32)
-    print('Expert actions shape=', expert_actions.shape)
+    #print('****************************************Expert observations shape=', expert_observations.shape)
+    #print('*Expert actions shape=', expert_actions.shape)
     saver = tf.train.Saver()
 
     with tf.Session() as sess:
@@ -68,15 +69,13 @@ def main(args):
             v_preds = []
             run_policy_steps = 0
             inner_iter = 0
-            while True:
+            while (len(observations) != expert_observations.shape[0] and len(actions) != expert_actions.shape[0]):
                 if args.render:
                     env.render()
-                if run_policy_steps % 10000 == 0:
-                    print('current policy step=', run_policy_steps)
                 run_policy_steps += 1
                 obs = np.stack([obs]).astype(dtype=np.float32)  # prepare to feed placeholder Policy.obs
                 act, v_pred = Policy.act(obs=obs, stochastic=True)
-                print('Action = ', act, 'State Value', v_pred)
+                #print('Action = ', act, 'State Value', v_pred)
                 #act = np.asscalar(act)
                 v_pred = np.asscalar(v_pred)
                 #we use constant velocity 2.5
@@ -100,12 +99,7 @@ def main(args):
                 if done:
                     print('----------------------------- Got enough reward. done! party time :D---------------------------------')
                 
-                #if run_policy_steps % 1000 == 0:
-                #    done = True
-                #    inner_iter+=1
-                #    store_actions(iteration, inner_iter, actions_to_log)
-                #    actions_to_log = []
-
+            
                 if done:
                     logging.debug('Done and prepare feeding the Value-NN')
                     next_obs = np.stack([next_obs]).astype(dtype=np.float32)  # prepare to feed placeholder Policy.obs
@@ -117,6 +111,11 @@ def main(args):
                 else:
                     obs = next_obs
 
+            logging.debug('Done and prepare feeding the Value-NN')
+            next_obs = np.stack([next_obs]).astype(dtype=np.float32)  # prepare to feed placeholder Policy.obs
+            _, v_pred = Policy.act(obs=next_obs, stochastic=True)
+            v_preds_next = v_preds[1:] + [np.asscalar(v_pred)]
+                    
             writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='episode_length', simple_value=run_policy_steps)])
                                , iteration)
             writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='episode_reward', simple_value=sum(rewards))])
@@ -124,9 +123,9 @@ def main(args):
 
             if sum(rewards) >= args.max_reward:
                 success_num += 1
-                logging.debug('success number = {}'.format(success_num))
+                logging.debug('**************** success number = {}. saving the model'.format(success_num))
                 if success_num >= args.success_num:
-                    saver.save(sess, args.savedir + '/model_' + str(datetime.date.today()) +'_iter'+ str(iteration)  +  '.ckpt')
+                    saver.save(sess, args.savedir + '/model_' + str(datetime.date.today()) +'_iter'+ str(iteration)  +  '.ckpt', max_to_keep=1000)
                     logging.debug('**************** Clear!! Model saved on iteration={}.*********************'.format(iteration))
                     if iteration == (args.iteration -1):
                         break
@@ -150,13 +149,15 @@ def main(args):
                     observations = observations[1::n].copy()
                     v_preds_next = v_preds_next[1::n].copy()
             # train discriminator
+            print('***************************************************************************** Observations shape = {}'.format(observations.shape))
+            print('***************************************************************************** Actions shape = {}'.format(actions.shape))
 
-            for i in range(3):
+            for i in range(6):
                 logging.debug('~~~~~~~~~~~~~~~~~~~~Training the discriminator now ~~~~~~~~~~~~~~~~~~~~')
                 logging.debug('Length of the expert observations={}'.format( expert_observations.shape))
                 logging.debug('Length of the expert actions={}'.format(expert_actions.shape))
                 logging.debug('Length of the learner observations={}'.format(len(observations)))
-                logging.debug('Length of the learner actions='.format(len(actions)))
+                logging.debug('Length of the learner actions={}'.format(actions.shape))
               #  reshaped = expert_actions.reshape(4500, 4)
                 D.train(expert_s=expert_observations,
                         expert_a=expert_actions,
@@ -173,7 +174,7 @@ def main(args):
             # train policy
             inp = [observations, actions, gaes, d_rewards, v_preds_next]
             PPO.assign_policy_parameters()
-            for epoch in range(6):
+            for epoch in range(9):
                 print('*******************Optimizing policy on epoch={} and iteration={}**************************'.format(epoch, iteration))
                 sample_indices = np.random.randint(low=0, high=observations.shape[0],
                                                    size=32)  # indices are in [low, high)
