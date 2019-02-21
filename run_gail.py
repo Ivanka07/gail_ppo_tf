@@ -74,7 +74,6 @@ def main(args):
                     env.render()
                 run_policy_steps += 1
                 obs = np.stack([obs]).astype(dtype=np.float32)  # prepare to feed placeholder Policy.obs
-                print(obs)
                 act, v_pred = Policy.act(obs=obs, stochastic=True)
                 #print('Action = ', act, 'State Value', v_pred)
                 #act = np.asscalar(act)
