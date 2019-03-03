@@ -3,25 +3,28 @@ import gym
 
 
 class Discriminator:
-    def __init__(self, env):
+    def __init__(self, env, env_name, env_id2_obs_shape):
         """
         :param env:
         Output of this Discriminator is reward for learning agent. Not the cost.
         Because discriminator predicts  P(expert|s,a) = 1 - P(agent|s,a).
         """
+        print(env)
+        print('[Discriminator] observation_space', env_id2_obs_shape[env_name])
+
+
 
         with tf.variable_scope('discriminator'):
            
             self.scope = tf.get_variable_scope().name
-            self.expert_s = tf.placeholder(dtype=tf.float32, shape=[None] + list(env.observation_space.shape), name='expert_obs')
+            self.expert_s = tf.placeholder(dtype=tf.float32, shape=[None] + list(env_id2_obs_shape[env_name]), name='expert_obs')
             self.expert_a = tf.placeholder(dtype=tf.int32, shape=[None] , name='expert_act')
 
-            self.agent_s = tf.placeholder(dtype=tf.float32, shape=[None] + list(env.observation_space.shape), name='agent_obs')
+            self.agent_s = tf.placeholder(dtype=tf.float32, shape=[None] + list(env_id2_obs_shape[env_name]), name='agent_obs')
             self.agent_a = tf.placeholder(dtype=tf.int32, shape=[None], name='agent_act')
 
-
-
             _depth = 0
+
             if  isinstance(env.action_space, gym.spaces.Box):
                 _depth = env.action_space.shape[0]
                 #create new placeholder according to the Box space
@@ -80,7 +83,7 @@ class Discriminator:
                                                                       self.agent_a: agent_a})
 
     def get_rewards(self, agent_s, agent_a):
-        print("+++++++++++ calculating rewards ++++++++++")
+        print("+++++++++++ calculating  discriminator rewards ++++++++++")
         return tf.get_default_session().run(self.rewards, feed_dict={self.agent_s: agent_s,
                                                                      self.agent_a: agent_a})
 
