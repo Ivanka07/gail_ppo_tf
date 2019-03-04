@@ -2,10 +2,9 @@ import gym
 import numpy as np
 import tensorflow as tf
 import argparse
-import gym_fetch_base_motions
 from network_models.policy_net import Policy_net
 
-
+print('gym version= ', gym.__version__)
 def argparser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--modeldir', help='directory of model', default='trained_models')
@@ -14,7 +13,7 @@ def argparser():
     parser.add_argument('--logdir', help='log directory', default='log/test')
     parser.add_argument('--iteration', default=int(1e3))
     parser.add_argument('--stochastic', action='store_false')
-    parser.add_argument('--env', help='openai enviroment', default='FetchBase-v0')
+    parser.add_argument('--env', help='openai enviroment', default='FetchDrawTriangle-v1')
     return parser.parse_args()
 
 
@@ -51,7 +50,7 @@ def main(args):
                 rewards.append(reward)
                 
                 next_obs, reward, done, info = env.step(act)
-                #done = env._success(None, None)
+                done = env._is_success(None, None)
                 if done:
                     obs = env.reset()
                     reward = -1
