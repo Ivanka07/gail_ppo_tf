@@ -47,9 +47,9 @@ def argparser():
     parser.add_argument('--logdir', help='log directory', default='log/train/gail')
     parser.add_argument('--savedir', help='save directory', default='trained_models/gail')
     parser.add_argument('--gamma', default=0.998)
-    parser.add_argument('--iterations', default=int(500))
+    parser.add_argument('--iterations', default=int(1e4))
     parser.add_argument('--env', default='FetchDrawTriangle-v1')
-    parser.add_argument('--expert_file', default='data_fetch_reach_random_50.npz')
+    parser.add_argument('--expert_file', default='data_fetch_reach_random_200.npz')
     parser.add_argument('--acs', default='actions.csv')
     parser.add_argument('--log_actions', default='log_actions')
     parser.add_argument('--max_episode_length', default=50, type=int)
@@ -207,6 +207,8 @@ def main(args):
     her_policy = train(env, env_type, env_id, None, args.num_timesteps, alg_kwargs)
     ex_av_rew = []
     ag_av_rew = []
+    ex_med_rew = []
+    ag_med_rew = []
 
     for i in range(args.iterations):
         logging.debug('current iteration={}'.format(i))
@@ -262,11 +264,13 @@ def main(args):
         print('Testing discriminator')
         exp_rewards = discrim.get_rewards(agent_s=test_exp_obs, agent_a=test_exp_acs)
         ex_av_rew.append(np.mean(exp_rewards))
-        print('Rewards for expert ={}'.format(np.mean(exp_rewards)))
+        ex_med_rew.append(np.median(exp_rewards))
+        logging.append('Avarage reward for expert ={}'.format(np.mean(exp_rewards)))
         writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='d_reward_expert', simple_value=np.mean(exp_rewards))]), i)
         ag_rewards =  discrim.get_rewards(agent_s=test_ag_obs, agent_a=test_ag_acs)
         ag_av_rew.append(np.mean(ag_rewards))
-        print('Rewards for agent ={}'.format(np.mean(ag_rewards)))
+        ag_med_rew.append(np.median(exp_rewards))
+        logging.append('Avarage reward for agent ={}'.format(np.mean(ag_rewards)))
         writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='d_reward_agent', simple_value=np.mean(ag_rewards))]), i)
 
         her_policy = train(env, env_type, env_id, None, args.num_timesteps, alg_kwargs, old_policy=her_policy)
@@ -280,7 +284,7 @@ def main(args):
     fileName += "_" + "rewards"
     fileName += "_" + str(args.iterations)
     fileName += ".npz"
-    np.savez_compressed(fileName, ex_rew=exp_rewards, ag_rew=ag_rewards)
+    np.savez_compressed(fileName, ex_av_rew=ex_av_rew, ag_av_rew=ag_av_rew, ex_med_rew=ex_med_rew, ag_med_rew=ag_med_rew)
     
 
 
