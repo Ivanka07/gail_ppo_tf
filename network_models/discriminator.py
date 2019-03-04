@@ -3,24 +3,24 @@ import gym
 
 
 class Discriminator:
-    def __init__(self, env, env_name, env_id2_obs_shape):
+    def __init__(self, env, env_obs_shape):
         """
         :param env:
         Output of this Discriminator is reward for learning agent. Not the cost.
         Because discriminator predicts  P(expert|s,a) = 1 - P(agent|s,a).
         """
         print(env)
-        print('[Discriminator] observation_space', env_id2_obs_shape[env_name])
+        print('[Discriminator] observation_space={}'.format(env_obs_shape))
 
 
 
         with tf.variable_scope('discriminator'):
            
             self.scope = tf.get_variable_scope().name
-            self.expert_s = tf.placeholder(dtype=tf.float32, shape=[None] + list(env_id2_obs_shape[env_name]), name='expert_obs')
+            self.expert_s = tf.placeholder(dtype=tf.float32, shape=[None, env_obs_shape], name='expert_obs')
             self.expert_a = tf.placeholder(dtype=tf.int32, shape=[None] , name='expert_act')
 
-            self.agent_s = tf.placeholder(dtype=tf.float32, shape=[None] + list(env_id2_obs_shape[env_name]), name='agent_obs')
+            self.agent_s = tf.placeholder(dtype=tf.float32, shape=[None, env_obs_shape], name='agent_obs')
             self.agent_a = tf.placeholder(dtype=tf.int32, shape=[None], name='agent_act')
 
             _depth = 0
@@ -40,7 +40,7 @@ class Discriminator:
             #print('Creating expert one hot tensor placeholder=', expert_a_one_hot)
             
             # add noise for stabilise training
-            self.expert_a += tf.random_normal(tf.shape(self.expert_a), mean=0.2, stddev=0.1, dtype=tf.float32)/1.2
+            self.expert_a += tf.random_normal(tf.shape(self.expert_a), mean=0.1, stddev=0.1, dtype=tf.float32)/1.2
             expert_s_a = tf.concat([self.expert_s, self.expert_a], axis=1)
             print('Concatenate two placeholders -> s_a=', expert_s_a)
 
@@ -65,6 +65,7 @@ class Discriminator:
                 loss = -loss
                 tf.summary.scalar('discriminator_loss', loss)
 
+            self.merged = tf.summary.merge_all()
             optimizer = tf.train.AdamOptimizer()
             self.train_op = optimizer.minimize(loss)
             self.rewards = tf.log(tf.clip_by_value(prob_2, 1e-10, 1))  # log(P(expert|s,a)) larger is better for agent
@@ -89,4 +90,10 @@ class Discriminator:
 
     def get_trainable_variables(self):
         return tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.scope)
+
+    def get_summary(self, ex_obs, ex_acs, a_obs, a_acs):
+        return tf.get_default_session().run(self.merged, feed_dict={self.expert_s: ex_obs,
+                                                                    self.expert_a: ex_acs,
+                                                                    self.agent_s: a_obs,
+                                                                    self.agent_a: a_acs})
 
