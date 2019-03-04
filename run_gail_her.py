@@ -250,12 +250,13 @@ def main(args):
         train_ag_obs, train_ag_acs, test_ag_obs, test_ag_acs = preprocess_training_data(ag_obs, ag_acs)
         print('Length of the learner training observations shape reshaped={}'.format(train_ag_obs.shape))
         #disriminator training
-        for i in range(3):
-            logging.debug('~~~~~~~~~~~~~~~~~~~~Training the discriminator in iter={} ~~~~~~~~~~~~~~~~~~~~'.format(i))
-            logging.debug('Length of the expert observations={}'.format(train_exp_obs.shape))
-            logging.debug('Length of the expert actions={}'.format(train_exp_acs.shape))
-            logging.debug('Length of the learner observations={}'.format(train_ag_obs.shape))
-            logging.debug('Length of the learner actions={}'.format(train_ag_acs.shape))
+        logging.debug('~~~~~~~~~~~~~~~~~~~~Training the discriminator in iter={} ~~~~~~~~~~~~~~~~~~~~'.format(i))
+        logging.debug('Length of the expert observations={}'.format(train_exp_obs.shape))
+        logging.debug('Length of the expert actions={}'.format(train_exp_acs.shape))
+        logging.debug('Length of the learner observations={}'.format(train_ag_obs.shape))
+        logging.debug('Length of the learner actions={}'.format(train_ag_acs.shape))
+        
+        for j in range(3):
           #  reshaped = expert_actions.reshape(4500, 4)
             discrim.train(expert_s=train_exp_obs,
                     expert_a=train_exp_acs,
@@ -263,6 +264,7 @@ def main(args):
                     agent_a=train_ag_acs)
         print('Testing discriminator')
         exp_rewards = discrim.get_rewards(agent_s=test_exp_obs, agent_a=test_exp_acs)
+        print('exp_rewards shape', exp_rewards.shape)
         ex_av_rew.append(np.mean(exp_rewards))
         ex_med_rew.append(np.median(exp_rewards))
         logging.debug('Avarage reward for expert ={}'.format(np.mean(exp_rewards)))
