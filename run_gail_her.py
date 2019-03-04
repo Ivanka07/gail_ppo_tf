@@ -86,6 +86,7 @@ def preprocess_training_data(obs, acs, test_data_factor=0.2):
 def train(env, env_type, env_id,seed, num_timesteps, alg_kwargs, old_policy=None, discriminator=None):
     print('Training {} on {}:{} with arguments \n{}'.format('her', env_type, env_id, alg_kwargs))
     learn = get_learn_function('her')
+    print('[gail train her] discriminator', discriminator)
     model = learn(
         env=env,
         seed=seed,
@@ -275,7 +276,7 @@ def main(args):
         logging.debug('Avarage reward for agent ={}'.format(np.mean(ag_rewards)))
         writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='d_reward_agent', simple_value=np.mean(ag_rewards))]), i)
 
-        her_policy = train(env, env_type, env_id, None, args.num_timesteps, alg_kwargs, old_policy=her_policy)
+        her_policy = train(env, env_type, env_id, None, args.num_timesteps, alg_kwargs, old_policy=her_policy, discriminator=discrim)
 
         summary = discrim.get_summary(ex_obs=test_exp_obs, ex_acs=test_exp_acs, a_obs=test_ag_obs, a_acs=test_ag_acs)
         writer.add_summary(summary, i)
