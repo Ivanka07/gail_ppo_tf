@@ -60,7 +60,7 @@ def argparser():
     parser.add_argument('--network', default='mlp')
     parser.add_argument('--seed', default=int(1), type=int)
     parser.add_argument('--num_env', default=int(1), type=int)
-    parser.add_argument('--batch_size', default=int(200), type=int)
+    parser.add_argument('--batch_size', default=int(100), type=int)
 
 
     return parser.parse_args()
@@ -91,7 +91,7 @@ def train(env, env_type, env_id,seed, num_timesteps, alg_kwargs, old_policy=None
         seed=seed,
         total_timesteps=num_timesteps,
         old_policy=old_policy,
-        n_epochs=1,
+        n_epochs=5,
         discr=discriminator,
         **alg_kwargs
     )
@@ -265,12 +265,12 @@ def main(args):
         exp_rewards = discrim.get_rewards(agent_s=test_exp_obs, agent_a=test_exp_acs)
         ex_av_rew.append(np.mean(exp_rewards))
         ex_med_rew.append(np.median(exp_rewards))
-        logging.append('Avarage reward for expert ={}'.format(np.mean(exp_rewards)))
+        logging.debug('Avarage reward for expert ={}'.format(np.mean(exp_rewards)))
         writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='d_reward_expert', simple_value=np.mean(exp_rewards))]), i)
         ag_rewards =  discrim.get_rewards(agent_s=test_ag_obs, agent_a=test_ag_acs)
         ag_av_rew.append(np.mean(ag_rewards))
         ag_med_rew.append(np.median(exp_rewards))
-        logging.append('Avarage reward for agent ={}'.format(np.mean(ag_rewards)))
+        logging.debug('Avarage reward for agent ={}'.format(np.mean(ag_rewards)))
         writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='d_reward_agent', simple_value=np.mean(ag_rewards))]), i)
 
         her_policy = train(env, env_type, env_id, None, args.num_timesteps, alg_kwargs, old_policy=her_policy)
