@@ -62,7 +62,7 @@ def argparser():
     parser.add_argument('--network', default='mlp')
     parser.add_argument('--seed', default=int(1), type=int)
     parser.add_argument('--num_env', default=int(1), type=int)
-    parser.add_argument('--batch_size', default=int(10), type=int)
+    parser.add_argument('--batch_size', default=int(4000), type=int)
     parser.add_argument('--policy_file', default='/policies/gail_her/gail1000')
     #parser.add_argument('--npz_file_name', default='')
     
@@ -214,7 +214,7 @@ def main(args):
     sess.run(tf.global_variables_initializer())
     #
     #initial policy training
-    her_policy = train(env, env_type, env_id, None, args.num_timesteps, 1, alg_kwargs)
+    her_policy = train(env, env_type, env_id, None, args.num_timesteps, 10, alg_kwargs)
     ex_av_rew = []
     ag_av_rew = []
     ex_med_rew = []
@@ -304,7 +304,8 @@ def main(args):
 
 
 if __name__ == '__main__':
-    logging.basicConfig(filename='training_gail_her_stop_dtr.log', level=logging.DEBUG)
+    currentDT = datetime.datetime.now()
+    logging.basicConfig(filename='logs/training_gail_her_'+ currentDT.strftime("%Y-%m-%d_%H_%M_%S")+'.log', level=logging.DEBUG)
     logging.debug('~~~~~~~~~~~starting training gail with her ~~~~~~~~~~~~~~')
     args = argparser()
     main(args)
