@@ -84,7 +84,6 @@ class Discriminator:
                                                                       self.agent_a: agent_a})
 
     def get_rewards(self, agent_s, agent_a):
-        print("+++++++++++ calculating  discriminator rewards ++++++++++")
         return tf.get_default_session().run(self.rewards, feed_dict={self.agent_s: agent_s,
                                                                      self.agent_a: agent_a})
 

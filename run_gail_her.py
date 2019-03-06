@@ -18,6 +18,8 @@ from baselines import logger
 from importlib import import_module
 from baselines.common.vec_env.vec_normalize import VecNormalize
 from baselines import her
+from pathlib import Path
+
 
 
 try:
@@ -47,7 +49,7 @@ def argparser():
     parser.add_argument('--logdir', help='log directory', default='log/train/gail')
     parser.add_argument('--savedir', help='save directory', default='trained_models/gail')
     parser.add_argument('--gamma', default=0.998)
-    parser.add_argument('--iterations', default=int(1e4))
+    parser.add_argument('--iterations', default=int(1e4), type=int)
     parser.add_argument('--env', default='FetchDrawTriangle-v1')
     parser.add_argument('--expert_file', default='data_fetch_reach_random_200.npz')
     parser.add_argument('--acs', default='actions.csv')
@@ -60,8 +62,10 @@ def argparser():
     parser.add_argument('--network', default='mlp')
     parser.add_argument('--seed', default=int(1), type=int)
     parser.add_argument('--num_env', default=int(1), type=int)
-    parser.add_argument('--batch_size', default=int(100), type=int)
-
+    parser.add_argument('--batch_size', default=int(10), type=int)
+    parser.add_argument('--policy_file', default='/policies/gail_her/gail1000')
+    #parser.add_argument('--npz_file_name', default='')
+    
 
     return parser.parse_args()
 
@@ -83,7 +87,7 @@ def preprocess_training_data(obs, acs, test_data_factor=0.2):
     return train_obs, train_acs, test_obs, test_acs
 
 
-def train(env, env_type, env_id,seed, num_timesteps, alg_kwargs, old_policy=None, discriminator=None):
+def train(env, env_type, env_id,seed, num_timesteps, epochs,  alg_kwargs, load_path=None , old_policy=None, discriminator=None):
     print('Training {} on {}:{} with arguments \n{}'.format('her', env_type, env_id, alg_kwargs))
     learn = get_learn_function('her')
     print('[gail train her] discriminator', discriminator)
@@ -92,8 +96,9 @@ def train(env, env_type, env_id,seed, num_timesteps, alg_kwargs, old_policy=None
         seed=seed,
         total_timesteps=num_timesteps,
         old_policy=old_policy,
-        n_epochs=2,
+        n_epochs=epochs,
         discr=discriminator,
+        load_path=load_path,
         **alg_kwargs
     )
 
@@ -171,8 +176,8 @@ def vectorize_obs(obs):
 
 def load_policy_from_file(path):
     pass
-
-
+import os
+import joblib
 
 def main(args):
     if MPI is None or MPI.COMM_WORLD.Get_rank() == 0:
@@ -182,6 +187,11 @@ def main(args):
         logger.configure(format_strs=[])
         rank = MPI.COMM_WORLD.Get_rank()
 
+    user_home = str(Path.home())
+
+    policy_path = user_home + args.policy_file
+    print('policy_file=', policy_path)
+    
     alg_kwargs = {}
     env_type, env_id = get_env_type(args.env)
     env, sess = build_env_sess(args)
@@ -202,16 +212,16 @@ def main(args):
     saver = tf.train.Saver(max_to_keep=1000)
     writer = tf.summary.FileWriter(args.logdir, sess.graph)
     sess.run(tf.global_variables_initializer())
-    reward_ph = tf.placeholder(dtype=tf.float32, shape=None, name='agent_reward')
-    
+    #
     #initial policy training
-    her_policy = train(env, env_type, env_id, None, args.num_timesteps, alg_kwargs)
+    her_policy = train(env, env_type, env_id, None, args.num_timesteps, 1, alg_kwargs)
     ex_av_rew = []
     ag_av_rew = []
     ex_med_rew = []
     ag_med_rew = []
 
-    for i in range(args.iterations):
+   
+    for i in range(int(args.iterations)):
         logging.debug('current iteration={}'.format(i))
         obs_batch = []
         acs_batch = []
@@ -251,12 +261,12 @@ def main(args):
         train_ag_obs, train_ag_acs, test_ag_obs, test_ag_acs = preprocess_training_data(ag_obs, ag_acs)
         print('Length of the learner training observations shape reshaped={}'.format(train_ag_obs.shape))
         #disriminator training
-        logging.debug('~~~~~~~~~~~~~~~~~~~~Training the discriminator in iter={} ~~~~~~~~~~~~~~~~~~~~'.format(i))
+        logging.debug('~~~~~~~~~~~~~~~~~~~~Training process in iter={} from {} iterations ~~~~~~~~~~~~~~~~~~~~'.format(i, args.iterations))
         logging.debug('Length of the expert observations={}'.format(train_exp_obs.shape))
         logging.debug('Length of the expert actions={}'.format(train_exp_acs.shape))
         logging.debug('Length of the learner observations={}'.format(train_ag_obs.shape))
         logging.debug('Length of the learner actions={}'.format(train_ag_acs.shape))
-        if i < 100: 
+        if i < 20: 
             for j in range(3):
              #  reshaped = expert_actions.reshape(4500, 4)
                 discrim.train(expert_s=train_exp_obs,
@@ -276,14 +286,14 @@ def main(args):
         logging.debug('Avarage reward for agent ={}'.format(np.mean(ag_rewards)))
         writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='d_reward_agent', simple_value=np.mean(ag_rewards))]), i)
 
-        her_policy = train(env, env_type, env_id, None, args.num_timesteps, alg_kwargs, old_policy=her_policy, discriminator=discrim)
+        her_policy = train(env, env_type, env_id, None, args.num_timesteps, 10, alg_kwargs, load_path=(policy_path + '/fetchreach5k'), old_policy=None, discriminator=discrim)
 
         summary = discrim.get_summary(ex_obs=test_exp_obs, ex_acs=test_exp_acs, a_obs=test_ag_obs, a_acs=test_ag_acs)
         writer.add_summary(summary, i)
     writer.close()
     env.close()
 
-    fileName = "fetch_reach"
+    fileName = env
     fileName += "_" + "rewards"
     fileName += "_" + str(args.iterations)
     fileName += ".npz"
