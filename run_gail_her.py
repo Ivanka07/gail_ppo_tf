@@ -92,7 +92,7 @@ def train(env, env_type, env_id,seed, num_timesteps, alg_kwargs, old_policy=None
         seed=seed,
         total_timesteps=num_timesteps,
         old_policy=old_policy,
-        n_epochs=5,
+        n_epochs=2,
         discr=discriminator,
         **alg_kwargs
     )
@@ -256,13 +256,13 @@ def main(args):
         logging.debug('Length of the expert actions={}'.format(train_exp_acs.shape))
         logging.debug('Length of the learner observations={}'.format(train_ag_obs.shape))
         logging.debug('Length of the learner actions={}'.format(train_ag_acs.shape))
-        
-        for j in range(3):
-          #  reshaped = expert_actions.reshape(4500, 4)
-            discrim.train(expert_s=train_exp_obs,
-                    expert_a=train_exp_acs,
-                    agent_s=train_ag_obs,
-                    agent_a=train_ag_acs)
+        if i < 100: 
+            for j in range(3):
+             #  reshaped = expert_actions.reshape(4500, 4)
+                discrim.train(expert_s=train_exp_obs,
+                        expert_a=train_exp_acs,
+                        agent_s=train_ag_obs,
+                        agent_a=train_ag_acs)
         print('Testing discriminator')
         exp_rewards = discrim.get_rewards(agent_s=test_exp_obs, agent_a=test_exp_acs)
         print('exp_rewards shape', exp_rewards.shape)
@@ -294,7 +294,7 @@ def main(args):
 
 
 if __name__ == '__main__':
-    logging.basicConfig(filename='training_gail_her.log', level=logging.DEBUG)
+    logging.basicConfig(filename='training_gail_her_stop_dtr.log', level=logging.DEBUG)
     logging.debug('~~~~~~~~~~~starting training gail with her ~~~~~~~~~~~~~~')
     args = argparser()
     main(args)
