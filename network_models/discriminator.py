@@ -61,6 +61,8 @@ class Discriminator:
             with tf.variable_scope('loss'):
                 loss_expert = tf.reduce_mean(tf.log(tf.clip_by_value(prob_1, 0.01, 1)))
                 loss_agent = tf.reduce_mean(tf.log(tf.clip_by_value(1 - prob_2, 0.01, 1)))
+                tf.summary.scalar('loss_expert', loss_expert)
+                tf.summary.scalar('loss_agent', loss_agent)
                 loss = loss_expert + loss_agent
                 loss = -loss
                 tf.summary.scalar('discriminator_loss', loss)
@@ -68,13 +70,25 @@ class Discriminator:
             self.merged = tf.summary.merge_all()
             optimizer = tf.train.AdamOptimizer()
             self.train_op = optimizer.minimize(loss)
-            self.rewards = tf.log(tf.clip_by_value(prob_2, 1e-10, 1))  # log(P(expert|s,a)) larger is better for agent
+            #self.rewards =  tf.log(tf.clip_by_value(prob_2, 1e-10, 1))  # log(P(expert|s,a)) larger is better for agent
+            self.rewards =  tf.log(tf.clip_by_value(1 - prob_2, 1e-10, 1))  # log(P(expert|s,a)) larger is better for agent
+            
 
-    def construct_network(self, input):
-        layer_1 = tf.layers.dense(inputs=input, units=20, activation=tf.nn.leaky_relu, name='layer1')
-        layer_2 = tf.layers.dense(inputs=layer_1, units=20, activation=tf.nn.leaky_relu, name='layer2')
-        layer_3 = tf.layers.dense(inputs=layer_2, units=20, activation=tf.nn.leaky_relu, name='layer3')
-        prob = tf.layers.dense(inputs=layer_3, units=1, activation=tf.sigmoid, name='prob')
+    def construct_network(self, input, n_layer=32):
+        layer_1 = tf.layers.dense(inputs=input, units=32, activation=tf.nn.leaky_relu, name='layer1')
+        last_layer = None
+        layer2 = None
+        for i in range(2,33):
+            if i==2:
+                layer2 = tf.layers.dense(inputs=layer_1, units=32, activation=tf.nn.leaky_relu, name='layer2')
+            else:
+                layer = tf.layers.dense(inputs=layer2, units=32, activation=tf.nn.leaky_relu, name='layer' + str(i))
+                layer2 = layer
+        #layer_3 = tf.layers.dense(inputs=layer_2, units=30, activation=tf.nn.leaky_relu, name='layer3')
+        #layer_4 = tf.layers.dense(inputs=layer_3, units=30, activation=tf.nn.leaky_relu, name='layer4')
+        #layer_5 = tf.layers.dense(inputs=layer_4, units=30, activation=tf.nn.leaky_relu, name='layer5')
+        #layer_6 = tf.layers.dense(inputs=layer_5, units=30, activation=tf.nn.leaky_relu, name='layer6')
+        prob = tf.layers.dense(inputs=layer, units=1, activation=tf.sigmoid, name='prob')
         return prob
 
     def train(self, expert_s, expert_a, agent_s, agent_a):

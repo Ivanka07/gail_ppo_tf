@@ -49,7 +49,7 @@ def argparser():
     parser.add_argument('--logdir', help='log directory', default='log/train/gail')
     parser.add_argument('--savedir', help='save directory', default='trained_models/gail')
     parser.add_argument('--gamma', default=0.998)
-    parser.add_argument('--iterations', default=int(1e4), type=int)
+    parser.add_argument('--iterations', default=int(1e3), type=int)
     parser.add_argument('--env', default='FetchDrawTriangle-v1')
     parser.add_argument('--expert_file', default='data_fetch_reach_random_200.npz')
     parser.add_argument('--acs', default='actions.csv')
@@ -62,7 +62,7 @@ def argparser():
     parser.add_argument('--network', default='mlp')
     parser.add_argument('--seed', default=int(1), type=int)
     parser.add_argument('--num_env', default=int(1), type=int)
-    parser.add_argument('--batch_size', default=int(4000), type=int)
+    parser.add_argument('--batch_size', default=int(2000), type=int)
     parser.add_argument('--policy_file', default='/policies/gail_her/gail1000')
     #parser.add_argument('--npz_file_name', default='')
     
@@ -266,13 +266,13 @@ def main(args):
         logging.debug('Length of the expert actions={}'.format(train_exp_acs.shape))
         logging.debug('Length of the learner observations={}'.format(train_ag_obs.shape))
         logging.debug('Length of the learner actions={}'.format(train_ag_acs.shape))
-        if i < 20: 
-            for j in range(3):
-             #  reshaped = expert_actions.reshape(4500, 4)
-                discrim.train(expert_s=train_exp_obs,
-                        expert_a=train_exp_acs,
-                        agent_s=train_ag_obs,
-                        agent_a=train_ag_acs)
+
+        for j in range(1):
+         #  reshaped = expert_actions.reshape(4500, 4)
+            discrim.train(expert_s=train_exp_obs,
+                    expert_a=train_exp_acs,
+                    agent_s=train_ag_obs,
+                    agent_a=train_ag_acs)
         print('Testing discriminator')
         exp_rewards = discrim.get_rewards(agent_s=test_exp_obs, agent_a=test_exp_acs)
         print('exp_rewards shape', exp_rewards.shape)
