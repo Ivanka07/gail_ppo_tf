@@ -3,7 +3,7 @@ import gym
 
 
 class Discriminator:
-    def __init__(self, env, env_obs_shape):
+    def __init__(self, env, env_obs_shape, training):
         """
         :param env:
         Output of this Discriminator is reward for learning agent. Not the cost.
@@ -53,10 +53,12 @@ class Discriminator:
             agent_s_a = tf.concat([self.agent_s, self.agent_a], axis=1)
 
 
-            with tf.variable_scope('network') as network_scope:
-                prob_1 = self.construct_network(input=expert_s_a)
-                network_scope.reuse_variables()  # share parameter
-                prob_2 = self.construct_network(input=agent_s_a)
+            with tf.variable_scope('network', reuse=tf.AUTO_REUSE) as network_scope:
+                print('Creating networks for A adn E')
+                prob_1 = self.construct_network(input=expert_s_a, training=training)
+                print('Creating networks for A and E')
+             #   network_scope.reuse_variables()  # share parameter
+                prob_2 = self.construct_network(input=agent_s_a, training=training)
 
             with tf.variable_scope('loss'):
                 loss_expert = tf.reduce_mean(tf.log(tf.clip_by_value(prob_1, 0.01, 1)))
@@ -66,29 +68,36 @@ class Discriminator:
                 loss = loss_expert + loss_agent
                 loss = -loss
                 tf.summary.scalar('discriminator_loss', loss)
-
+            
             self.merged = tf.summary.merge_all()
-            optimizer = tf.train.AdamOptimizer()
+            optimizer = tf.train.AdamOptimizer(0.0003)
             self.train_op = optimizer.minimize(loss)
-            #self.rewards =  tf.log(tf.clip_by_value(prob_2, 1e-10, 1))  # log(P(expert|s,a)) larger is better for agent
-            self.rewards =  tf.log(tf.clip_by_value(1 - prob_2, 1e-10, 1))  # log(P(expert|s,a)) larger is better for agent
+            self.rewards =  tf.log(tf.clip_by_value(prob_2, 1e-10, 1))  # log(P(expert|s,a)) larger is better for agent
+            #self.reward_op = -tf.log(1-tf.nn.sigmoid(generator_logits)+1e-8)
+            #training_ops
             
 
-    def construct_network(self, input, n_layer=32):
+    def construct_network(self, input, training=None, n_layer=32):
         layer_1 = tf.layers.dense(inputs=input, units=32, activation=tf.nn.leaky_relu, name='layer1')
         last_layer = None
         layer2 = None
+        bn_layer2 = None
         for i in range(2,33):
             if i==2:
                 layer2 = tf.layers.dense(inputs=layer_1, units=32, activation=tf.nn.leaky_relu, name='layer2')
+                batchNorm2 = tf.layers.batch_normalization(layer2, training=training, momentum=0.9)
+                batchNorm2_act = tf.nn.elu(batchNorm2) # ELU Activation
             else:
-                layer = tf.layers.dense(inputs=layer2, units=32, activation=tf.nn.leaky_relu, name='layer' + str(i))
+                layer = tf.layers.dense(inputs=batchNorm2_act, units=32, activation=tf.nn.leaky_relu, name='layer' + str(i))
                 layer2 = layer
+                batchNorm2 = tf.layers.batch_normalization(layer2, training=training, momentum=0.9, name='batch_n' + str(i))
+                batchNorm2_act = tf.nn.elu(batchNorm2) # ELU Activation
+        
         #layer_3 = tf.layers.dense(inputs=layer_2, units=30, activation=tf.nn.leaky_relu, name='layer3')
         #layer_4 = tf.layers.dense(inputs=layer_3, units=30, activation=tf.nn.leaky_relu, name='layer4')
         #layer_5 = tf.layers.dense(inputs=layer_4, units=30, activation=tf.nn.leaky_relu, name='layer5')
         #layer_6 = tf.layers.dense(inputs=layer_5, units=30, activation=tf.nn.leaky_relu, name='layer6')
-        prob = tf.layers.dense(inputs=layer, units=1, activation=tf.sigmoid, name='prob')
+        prob = tf.layers.dense(inputs=batchNorm2_act, units=1, activation=tf.sigmoid, name='prob')
         return prob
 
     def train(self, expert_s, expert_a, agent_s, agent_a):

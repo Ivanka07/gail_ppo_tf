@@ -86,8 +86,40 @@ def preprocess_training_data(obs, acs, test_data_factor=0.2):
     print('test_obs lenght=', test_acs.shape)
     return train_obs, train_acs, test_obs, test_acs
 
+def shuffle_data(obs, acs):
+    o_a_list = []
+    for i in range(obs.shape[0]):
+        o = obs[i,:]
+        a = acs[i,:]
+        o_a_list.append((o,a))
 
-def train(env, env_type, env_id,seed, num_timesteps, epochs,  alg_kwargs, load_path=None , old_policy=None, discriminator=None):
+    print (o_a_list)
+
+
+def build_minibatch(obs, acs):
+    #shuffle here
+    #build minibatch
+    # 
+    pass
+
+def preprocess_training_data_vectorized(obs, acs, test_data_factor=0.2):        
+    print('obs shape=', obs.shape)                                              
+                                                                          
+    test_data_length = obs.shape[0]*test_data_factor                            
+    print('test_data_length=',test_data_length)                                 
+    train_obs = obs[int(test_data_length):,:]                                   
+    test_obs = obs[0:int(test_data_length),:]                                   
+    print('Train lenght=', train_obs.shape)                                     
+    print('test_obs lenght=', test_obs.shape)                                   
+    train_acs = acs[int(test_data_length):,:]                                   
+    test_acs = acs[0:int(test_data_length),:]                                   
+    print('Train lenght=', train_acs.shape)                                     
+    print('test_obs lenght=', test_acs.shape)                                   
+    return train_obs, train_acs, test_obs, test_acs
+
+
+
+def train(env, env_type, env_id,seed, num_timesteps, epochs,  alg_kwargs, load_path=None , old_policy=None, discriminator=None, save_path=None):
     print('Training {} on {}:{} with arguments \n{}'.format('her', env_type, env_id, alg_kwargs))
     learn = get_learn_function('her')
     print('[gail train her] discriminator', discriminator)
@@ -99,6 +131,7 @@ def train(env, env_type, env_id,seed, num_timesteps, epochs,  alg_kwargs, load_p
         n_epochs=epochs,
         discr=discriminator,
         load_path=load_path,
+        save_path=save_path,
         **alg_kwargs
     )
 
@@ -195,7 +228,8 @@ def main(args):
     alg_kwargs = {}
     env_type, env_id = get_env_type(args.env)
     env, sess = build_env_sess(args)
-    discrim = Discriminator(env, env_id2_obs_shape[args.env])
+    training = tf.placeholder_with_default(False, shape=(), name='training')
+    discrim = Discriminator(env, env_id2_obs_shape[args.env], training)
     
     alg_kwargs = get_learn_function_defaults('her', env_type)
     alg_kwargs.update(extra_args)
@@ -207,14 +241,14 @@ def main(args):
     exp_acs = expert_data['acs']
     print('expert obs shape={}'.format(exp_obs.shape))
     print('expert acts shape={}'.format(exp_acs.shape))
-    train_exp_obs, train_exp_acs, test_exp_obs, test_exp_acs = preprocess_training_data(exp_obs, exp_acs)
+    train_exp_obs, train_exp_acs, test_exp_obs, test_exp_acs = preprocess_training_data_vectorized(exp_obs, exp_acs)
     #training stuff
     saver = tf.train.Saver(max_to_keep=1000)
     writer = tf.summary.FileWriter(args.logdir, sess.graph)
     sess.run(tf.global_variables_initializer())
     #
     #initial policy training
-    her_policy = train(env, env_type, env_id, None, args.num_timesteps, 10, alg_kwargs)
+    her_policy = train(env, env_type, env_id, None, args.num_timesteps, 10, alg_kwargs, save_path='/policies/gail_her/gail1000')
     ex_av_rew = []
     ag_av_rew = []
     ex_med_rew = []
@@ -269,6 +303,7 @@ def main(args):
 
         for j in range(1):
          #  reshaped = expert_actions.reshape(4500, 4)
+
             discrim.train(expert_s=train_exp_obs,
                     expert_a=train_exp_acs,
                     agent_s=train_ag_obs,
@@ -286,7 +321,7 @@ def main(args):
         logging.debug('Avarage reward for agent ={}'.format(np.mean(ag_rewards)))
         writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='d_reward_agent', simple_value=np.mean(ag_rewards))]), i)
 
-        her_policy = train(env, env_type, env_id, None, args.num_timesteps, 10, alg_kwargs, load_path=(policy_path + '/fetchreach5k'), old_policy=None, discriminator=discrim)
+        her_policy = train(env, env_type, env_id, None, args.num_timesteps, 5, alg_kwargs, load_path=(policy_path + '/init_model'), old_policy=None, discriminator=discrim)
 
         summary = discrim.get_summary(ex_obs=test_exp_obs, ex_acs=test_exp_acs, a_obs=test_ag_obs, a_acs=test_ag_acs)
         writer.add_summary(summary, i)
